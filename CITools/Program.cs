@@ -23,7 +23,7 @@ namespace CITools
         static void Main(string[] args)
         {
             var version = Assembly.GetExecutingAssembly().GetName().Version;
-            string welcome = $"TEST UPDATE\nCITools {version}\n\nFirst time here, use first \'config -input {{inputfilepath}} -output {{outputfolderpath}}\'\n";
+            string welcome = $"CITools {version}\n\nFirst time here, use first \'config -input {{inputfilepath}} -output {{outputfolderpath}}\'\n";
             Console.WriteLine(welcome);
             InitializeEndpoints();
             DisplayUserChoiceCommands();
