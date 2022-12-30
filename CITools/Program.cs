@@ -19,27 +19,42 @@ namespace CITools
 
         private static List<EndpointSelected> _endpointsSelected = new List<EndpointSelected>();
         private static bool @continue = true;
-
+        private static bool start = true;
         static void Main(string[] args)
         {
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
-            string welcome = $"CITools {version}\n\nFirst time here, use first \'config -input {{inputfilepath}} -output {{outputfolderpath}}\'\n";
+            var version = Assembly.GetExecutingAssembly().GetName();
+
+            string welcome = $"{version} - WELCOME\n";
             Console.WriteLine(welcome);
             InitializeEndpoints();
-            DisplayUserChoiceCommands();
+            if (!start)
+            {
+                Console.WriteLine("\nYou must Set input path to a valid json file using this command :\n'config -input {inputfilepath} -output {outputfolderpath}'\n");
+            }
+            DisplayUserChoiceCommands(start);
+            
             while (@continue)
             {
                 var command = Console.ReadLine();
                 if (string.IsNullOrEmpty(command)) continue;
-                DispatchCommand(command);
+                DispatchCommand(command, start);
             }
         }
 
 
         #region UI Logic
-        private static void DisplayUserChoiceCommands()
+        private static void DisplayUserChoiceCommands(bool start)
         {
             Console.WriteLine("\nAvailable commands : \n");
+            if (!start)
+            {
+                Console.WriteLine("\t-> commands : Display available commands");
+                Console.WriteLine("\t-> config -input -output -show : set input filepath and output folderpath," +
+                "\n\t   -show display actual config");
+                Console.WriteLine("\t-> quit : It does what it seems!\n");
+                return;
+            }
+
             Console.WriteLine("\t-> commands : Display available commands");
             Console.WriteLine("\t-> display -all: Display endpoints selected or all endpoints available if no one is selected" +
                 "\n\t   -all to force displaying all endpoints");
@@ -55,9 +70,61 @@ namespace CITools
                 "\n\t   -show display actual config");
             Console.WriteLine("\t-> quit : It does what it seems!\n");
         }
-        private static void DispatchCommand(string command)
+        private static void DispatchInitializeConfig(string command)
+        {
+            // set regex to catch command and parameters
+            var commandRegex = new Regex(@"(?<command>^\w+)");
+            var inputfilepathRegex = new Regex(@"-input\s(?<input1>(.+)\\([^\\]+))\s-|-input\s(?<input2>(.+)\\([^\\]+))");
+            var outputfolderpathRegex = new Regex(@"-output\s(?<output1>(.+)\\([^\\]+))\s-|-output\s(?<output2>(.+)\\([^\\]+))");
+
+            // booleans
+            var isInputFilePath = command.Contains("-input");
+            var isOutputFolderPath = command.Contains("-output");
+            var show = command.Contains("-show");
+
+            string? absolutecommand;
+            string? inputfilepath;
+            string? outputfolderpath;
+            // catch command and parameters
+            try
+            {
+                absolutecommand = commandRegex.Matches(command).Single(m => m.Groups.ContainsKey("command")).Groups.Values.Single(v => v.Name.Equals("command")).Value.ToLower();
+                inputfilepath = isInputFilePath ? inputfilepathRegex.Matches(command).Single(m => m.Groups.ContainsKey("input1") || m.Groups.ContainsKey("input2")).Groups.Values.Where(v => (v.Name == "input1" || v.Name == "input2") && v.Value != "").Single().Value : null;
+                outputfolderpath = isOutputFolderPath ? outputfolderpathRegex.Matches(command).Single(m => m.Groups.ContainsKey("output1") || m.Groups.ContainsKey("output2")).Groups.Values.Where(v => (v.Name == "output1" || v.Name == "output2") && v.Value != "").Single().Value : null;
+            }
+            catch
+            {
+                Console.WriteLine("Something went wrong while reading command");
+                return;
+            }
+
+
+            switch (absolutecommand)
+            {
+                case "commands":
+                    DisplayUserChoiceCommands(start);
+                    break;
+                case "quit":
+                    @continue = false;
+                    break;
+                case "config":
+                    ConfigAction(inputfilepath, outputfolderpath, show);
+                    break;
+                default:
+                    Console.WriteLine("\nUnknown Command\n");
+                    break;
+
+            };
+        }
+        private static void DispatchCommand(string command, bool start)
         {
             if (string.IsNullOrEmpty(command)) return;
+
+            if (!start)
+            {
+                DispatchInitializeConfig(command);
+                return;
+            }
 
             // set regex to catch command and parameters
             var commandRegex = new Regex(@"(?<command>^\w+)");
@@ -98,12 +165,12 @@ namespace CITools
                 Console.WriteLine("Something went wrong while reading command");
                 return;
             }
-            
+
 
             switch (absolutecommand)
             {
                 case "commands":
-                    DisplayUserChoiceCommands();
+                    DisplayUserChoiceCommands(start);
                     break;
                 case "display":
                     DisplayEndpointsAction(displayAll);
@@ -169,6 +236,11 @@ namespace CITools
         }
         private static void ExportAction(bool wantJson, string? filename)
         {
+            if (!Directory.Exists(_outputfolderpath))
+            {
+                Console.WriteLine("Edit config to set valid output directory path");
+                return;
+            }
             if (string.IsNullOrEmpty(filename))
                 filename = "output";
             var jsonPathObject = _jsonObject!.Single(p => p.Key == "paths").Value as ExpandoObject ?? throw new DeserializeException();
@@ -212,7 +284,7 @@ namespace CITools
                 string yaml = serializer.Serialize(_jsonObject!);
                 File.WriteAllText($"{_outputfolderpath}{filename}.yaml", yaml);
             }
-            
+
 
             InitializeEndpoints();
 
@@ -266,6 +338,7 @@ namespace CITools
             _outputfolderpath = ConfigurationManager.AppSettings["outputpath"];
             SetJsonObject();
             SetEndPoints();
+            start = _endpoints!.Any();
         }
         private static void SetJsonObject()
         {
@@ -286,7 +359,11 @@ namespace CITools
         private static void SetEndPoints()
         {
             if (_jsonObject == null)
+            {
                 _endpoints = Enumerable.Empty<Endpoint>();
+                return;
+            }
+            
             _endpoints =
             ((_jsonObject!.Single(p => p.Key == "paths").Value as ExpandoObject) ?? throw new DeserializeException())
                 .Select(p => new Endpoint() { Path = new KeyValuePair<string, ExpandoObject>(key: p.Key, value: (p.Value as ExpandoObject) ?? throw new DeserializeException()) });
