@@ -1,0 +1,7 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+	<appSettings>
+		<add key="inputpath" value="C:\Users\julien.tritz\Desktop\swagger.json"/>
+		<add key="outputpath" value="C:\Users\julien.tritz\Desktop\CITools\CI"/>
+	</appSettings>
+</configuration>
