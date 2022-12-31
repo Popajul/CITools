@@ -20,12 +20,18 @@ namespace CITools
         private static List<EndpointSelected> _endpointsSelected = new List<EndpointSelected>();
         private static bool @continue = true;
         private static bool start = true;
+
+        private static Regex _commandreg = new Regex(@"(?<command>^\w+)");
+        private static Regex _outputreg = new Regex(@"((?:-output\s?)(?<output>\S+\\*)(?:\s*))");
+        private static Regex _inputreg = new Regex(@"((?:-input\s?)(?<input>\S+\\*)\s*)");
+        private static Regex _indexesreg = new Regex("((?:-i\\s?)(?<indexes>(\\d+,*)*)(?:\\s*))");
+        private static Regex _keywordreg = new Regex(@"((?:-k\s?)(?<keyword>\S+))");
+        private static Regex _filenamereg = new Regex(@"((?:-filename\s?)(?<filename>[A-Za-z0-9]+)(?:\s*))");
+        private static Regex[] _regexes = new Regex[] { _commandreg, _outputreg, _inputreg, _indexesreg, _keywordreg, _filenamereg };
         static void Main(string[] args)
         {
-            var version = Assembly.GetExecutingAssembly().GetName();
-
-            string welcome = $"{version} - WELCOME\n";
-            Console.WriteLine(welcome);
+            var name = Assembly.GetExecutingAssembly().GetName().Name;
+            Console.WriteLine(name);
             InitializeEndpoints();
             if (!start)
             {
@@ -72,29 +78,37 @@ namespace CITools
         }
         private static void DispatchInitializeConfig(string command)
         {
-            // set regex to catch command and parameters
-            var commandRegex = new Regex(@"(?<command>^\w+)");
-            var inputfilepathRegex = new Regex(@"-input\s(?<input1>(.+)\\([^\\]+))\s-|-input\s(?<input2>(.+)\\([^\\]+))");
-            var outputfolderpathRegex = new Regex(@"-output\s(?<output1>(.+)\\([^\\]+))\s-|-output\s(?<output2>(.+)\\([^\\]+))");
+            var regexes = new Regex[] {_commandreg,_inputreg,_outputreg};
 
+            var results = regexes.Select(r => r.Match(command))
+                                .Where(m => m.Success)
+                                .SelectMany(m => m.Groups.Values)
+                                .Where(m => char.IsLetter(m.Name.First()));
             // booleans
             var isInputFilePath = command.Contains("-input");
             var isOutputFolderPath = command.Contains("-output");
             var show = command.Contains("-show");
 
-            string? absolutecommand;
-            string? inputfilepath;
-            string? outputfolderpath;
+            string absolutecommand = "";
+            string? inputfilepath = null;
+            string? outputfolderpath = null;
             // catch command and parameters
             try
             {
-                absolutecommand = commandRegex.Matches(command).Single(m => m.Groups.ContainsKey("command")).Groups.Values.Single(v => v.Name.Equals("command")).Value.ToLower();
-                inputfilepath = isInputFilePath ? inputfilepathRegex.Matches(command).Single(m => m.Groups.ContainsKey("input1") || m.Groups.ContainsKey("input2")).Groups.Values.Where(v => (v.Name == "input1" || v.Name == "input2") && v.Value != "").Single().Value : null;
-                outputfolderpath = isOutputFolderPath ? outputfolderpathRegex.Matches(command).Single(m => m.Groups.ContainsKey("output1") || m.Groups.ContainsKey("output2")).Groups.Values.Where(v => (v.Name == "output1" || v.Name == "output2") && v.Value != "").Single().Value : null;
+                absolutecommand = results.SingleOrDefault(r => r.Name == "command")?.Value ?? throw new InvalidOperationException("ERROR : no command name detected");
+                inputfilepath = isInputFilePath ? results.SingleOrDefault(r => r.Name == "input")?.Value : null;
+                outputfolderpath = isOutputFolderPath ? results.SingleOrDefault(r => r.Name == "output")?.Value : null;
             }
-            catch
+            catch(InvalidOperationException e)
             {
-                Console.WriteLine("Something went wrong while reading command");
+                Console.WriteLine(e.Message + "\n");
+                Console.WriteLine(e.StackTrace + "\n");
+                return;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("ERROR : A parameter was given more than once");
+                Console.WriteLine(e.StackTrace);
                 return;
             }
 
@@ -126,13 +140,10 @@ namespace CITools
                 return;
             }
 
-            // set regex to catch command and parameters
-            var commandRegex = new Regex(@"(?<command>^\w+)");
-            var indexRegex = new Regex(@"(\d{1,})");
-            var keywordRegex = new Regex(@"-k\s([a-zA-Z]{1,})");
-            var filenameRegex = new Regex(@"-filename\s([a-zA-Z]{3,})");
-            var inputfilepathRegex = new Regex(@"-input\s(?<input1>(.+)\\([^\\]+))\s-|-input\s(?<input2>(.+)\\([^\\]+))");
-            var outputfolderpathRegex = new Regex(@"-output\s(?<output1>(.+)\\([^\\]+))\s-|-output\s(?<output2>(.+)\\([^\\]+))");
+            var results = _regexes.Select(r => r.Match(command))
+                               .Where(m => m.Success)
+                               .SelectMany(m => m.Groups.Values)
+                               .Where(m => char.IsLetter(m.Name.First()));
 
             // booleans
             var isIndex = command.Contains("-i");
@@ -144,28 +155,44 @@ namespace CITools
             var displayAll = command.Contains("-all");
             bool wantJson = command.Contains("json", StringComparison.OrdinalIgnoreCase);
 
-            IEnumerable<int>? indexes;
-            string? keyword;
-            string? absolutecommand;
-            string? filename;
-            string? inputfilepath;
-            string? outputfolderpath;
+            int[]? indexes = null;
+            string? keyword = null;
+            string absolutecommand = "";
+            string? filename = null;
+            string? inputfilepath = null;
+            string? outputfolderpath = null;
             // catch command and parameters
             try
             {
-                keyword = isKeyword ? keywordRegex.Matches(command).Single().Groups[1].Value : null;
-                indexes = isIndex ? indexRegex.Matches(command).SelectMany(m => m.Captures, (m, c) => Convert.ToInt32(c.Value)) : null;
-                absolutecommand = commandRegex.Matches(command).Single(m => m.Groups.ContainsKey("command")).Groups.Values.Single(v => v.Name.Equals("command")).Value.ToLower();
-                filename = isFileName ? filenameRegex.Matches(command).Single().Groups[1].Value : null;
-                inputfilepath = isInputFilePath ? inputfilepathRegex.Matches(command).Single(m => m.Groups.ContainsKey("input1") || m.Groups.ContainsKey("input2")).Groups.Values.Where(v => (v.Name == "input1" || v.Name == "input2") && v.Value != "").Single().Value : null;
-                outputfolderpath = isOutputFolderPath ? outputfolderpathRegex.Matches(command).Single(m => m.Groups.ContainsKey("output1") || m.Groups.ContainsKey("output2")).Groups.Values.Where(v => (v.Name == "output1" || v.Name == "output2") && v.Value != "").Single().Value : null;
+                keyword = isKeyword ? results.SingleOrDefault(r => r.Name == "keyword")?.Value : null;
+                indexes = isIndex ? results.SingleOrDefault(r => r.Name == "indexes")?.Value?.Split(",").Select(s =>
+                {
+                    try
+                    {
+                        return Convert.ToInt32(s);
+                    }
+                    catch (Exception)
+                    {
+                        throw new InvalidOperationException("ERROR: index must have an integer value");
+                    }
+                }).ToArray() : null;
+                absolutecommand = results.SingleOrDefault(r => r.Name == "command")?.Value?.ToLower() ?? throw new InvalidOperationException("ERROR : no command name detected");
+                filename = isFileName ? results.SingleOrDefault(r => r.Name == "filename")?.Value : null;
+                inputfilepath = isInputFilePath ? results.SingleOrDefault(r => r.Name == "input")?.Value : null;
+                outputfolderpath = isOutputFolderPath ? results.SingleOrDefault(r => r.Name == "output")?.Value : null;
             }
-            catch
+            catch (InvalidOperationException e)
             {
-                Console.WriteLine("Something went wrong while reading command");
+                Console.WriteLine(e.Message + "\n");
+                Console.WriteLine(e.StackTrace + "\n");
                 return;
             }
-
+            catch (Exception e)
+            {
+                Console.WriteLine("ERROR : A parameter was given more than once");
+                Console.WriteLine(e.StackTrace);
+                return;
+            }
 
             switch (absolutecommand)
             {
