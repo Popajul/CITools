@@ -1,13 +1,7 @@
-﻿using Newtonsoft.Json.Converters;
-using Newtonsoft.Json;
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System.Configuration;
 using System.Dynamic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CITools
 {
@@ -43,7 +37,6 @@ namespace CITools
             {
                 Console.WriteLine("\n" + e.Message + "\n");
             }
-
         }
 
         private static void SetEndPoints()

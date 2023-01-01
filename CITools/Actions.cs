@@ -66,9 +66,12 @@ namespace CITools
                 Console.WriteLine("\nEdit config to set valid output directory path\n");
                 return;
             }
+
             if (string.IsNullOrEmpty(filename))
                 filename = "output";
+
             var jsonPathObject = GlobalProperties._jsonObject!.Single(p => p.Key == "paths").Value as ExpandoObject ?? throw new DeserializeException();
+
             // remove unselected paths
             var selectedPathKeys = GlobalProperties._endpointsSelected.Select(f => f.Endpoint!.Path.Key).ToList();
             var pathKeysToRemove = GlobalProperties._endpoints!.Where(e => !selectedPathKeys.Contains(e.Path.Key)).Select(p => p.Path.Key).ToList();
@@ -76,6 +79,7 @@ namespace CITools
             {
                 _ = jsonPathObject!.Remove(key, out _);
             }
+
             // remove unused verbs
             foreach (var endpoint in GlobalProperties._endpoints!)
             {
@@ -112,12 +116,10 @@ namespace CITools
 
 
             GlobalProperties.InitializeEndpoints();
-
             return;
         }
         internal static void FilterAction(IEnumerable<int>? indexes, string? keyword)
         {
-
             if (indexes != null && indexes.Any())
             {
                 var endPointsToRemove = indexes.Select(i => GlobalProperties._endpointsSelected.ElementAt(i)).ToList();

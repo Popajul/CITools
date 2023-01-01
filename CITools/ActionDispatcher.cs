@@ -61,7 +61,6 @@ namespace CITools
                 default:
                     Console.WriteLine("\nUnknown Command\n");
                     break;
-
             };
         }
         internal static void DispatchCommand(string command)
@@ -155,7 +154,6 @@ namespace CITools
                 default:
                     DisplayUtils.DisplayMessage("Unknown Command");
                     break;
-
             };
         }
     }
