@@ -116,6 +116,7 @@ namespace CITools
 
 
             GlobalProperties.InitializeEndpoints();
+            RefreshSelection();
             return;
         }
         internal static void FilterAction(IEnumerable<int>? indexes, string? keyword)
@@ -174,6 +175,11 @@ namespace CITools
                     GetSchemaKeyReferencedByExpandoObject(schema!, schemas, schemaKeysSelected);
                 }
             }
+        }
+        private static void RefreshSelection()
+        {
+            GlobalProperties._endpointsSelected = GlobalProperties._endpoints!.GetEndpointByIndex(GlobalProperties._endpointsSelected.Select(e => e.InitialIndex).ToList()).ToList();
+                
         }
     }
 }

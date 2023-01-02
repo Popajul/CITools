@@ -7,6 +7,7 @@ namespace CITools
         // To get EndPoint Path select Key
         internal Endpoint? Endpoint { get; set; }
         internal KeyValuePair<string, ExpandoObject> VerbSelected { get; set; }
+        internal int InitialIndex { get; set; }
     }
 
 }
