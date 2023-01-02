@@ -4,7 +4,7 @@
     {
         static void Main()
         {
-            DisplayUtils.DisplayMessage("CITools");
+            Console.WriteLine("CITools 1.0.0.29\n");
             GlobalProperties.InitializeEndpoints();
             if (!GlobalProperties._start)
             {
