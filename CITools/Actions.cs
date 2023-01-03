@@ -60,12 +60,20 @@ namespace CITools
 
             return;
         }
-        internal static void ExportAction(bool wantJson, string? filename)
+        internal static void ExportAction(bool wantJson, string? filename, bool split = true)
         {
             if (!Directory.Exists(GlobalProperties._outputfolderpath))
             {
-                Console.WriteLine("\nEdit config to set valid output directory path\n");
-                return;
+                try
+                {
+                    Directory.CreateDirectory(GlobalProperties._outputfolderpath!);
+                }
+                catch
+                {
+                    Console.WriteLine("\nEdit config to set valid output directory path\n");
+                    return;
+                }
+                
             }
             if (string.IsNullOrEmpty(filename))
             {
@@ -101,7 +109,25 @@ namespace CITools
 
             foreach (var key in schemaKeysToRemove)
                 _ = schemas!.Remove(key, out _);
+            
+            if (split)
+            {
+                var outputpath = GlobalProperties._outputfolderpath;
+                ConfigAction(null, @$"{GlobalProperties._outputfolderpath}{filename}SPLIT\", false);
+                var collection = GlobalProperties._endpointsSelected.ToList();
 
+                var index = 0;
+                foreach(var elt in collection)
+                {
+                    GlobalProperties._endpointsSelected.RemoveAll(e=>true);
+                    GlobalProperties._endpointsSelected.Add(elt);
+                    
+                    ExportAction(wantJson, $"{filename}_{index}", split: false);
+                    index ++;
+                }
+                ConfigAction(null, outputpath, false);
+                GlobalProperties._endpointsSelected = collection;
+            }
             // export json
             if (wantJson)
             {
