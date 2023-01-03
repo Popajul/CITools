@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System;
 using System.Configuration;
 using System.Dynamic;
 using System.Text.RegularExpressions;
@@ -66,10 +67,11 @@ namespace CITools
                 Console.WriteLine("\nEdit config to set valid output directory path\n");
                 return;
             }
-
             if (string.IsNullOrEmpty(filename))
-                filename = "output";
-
+            {
+                var now = DateTime.Now;
+                filename = now.ToString("MM-dd-yyyy-HH-mm-ss");
+            }
             var jsonPathObject = GlobalProperties._jsonObject!.Single(p => p.Key == "paths").Value as ExpandoObject ?? throw new DeserializeException();
 
             // remove unselected paths
@@ -81,7 +83,7 @@ namespace CITools
             }
 
             // remove unused verbs
-            foreach (var endpoint in GlobalProperties._endpoints!)
+            foreach (var endpoint in GlobalProperties._endpoints!.ToList())
             {
                 var unusedVerbs = endpoint!.Verbs!.Where(v => !GlobalProperties._endpointsSelected.Where(e => e.Endpoint!.Path.Key.Equals(endpoint.Path.Key)).Select(e => e.VerbSelected).Contains(v)).ToList();
                 foreach (var unusedVerb in unusedVerbs)
