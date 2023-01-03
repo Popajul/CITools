@@ -11,14 +11,17 @@ namespace CITools
     {
         internal static List<EndpointSelected> GetEndpointByIndex(this IEnumerable<Endpoint> endpoints,IEnumerable<int> indexes)
         {
-            return indexes.Select(i => endpoints.SelectMany(e => e.Verbs!, (e, v) => new { Endpoint = e, Verb = v ,Index=i}).ElementAt(i)).Select(e => new EndpointSelected() { Endpoint = e.Endpoint, VerbSelected = e.Verb, InitialIndex = e.Index }).ToList();
+            return indexes.Select(i =>
+            {
+                var endpoint = endpoints.Single(e => e.Index == i);
+                return new EndpointSelected() { Endpoint = endpoint, VerbSelected = endpoint.Verb, InitialIndex = endpoint.Index };
+            }).ToList();
         }
         internal static List<EndpointSelected> GetEndpointByKeyword(this IEnumerable<Endpoint> endpoints,string keyword)
         {
             var endpointslist = endpoints.ToList();
-            return endpoints!.Where(e => e.Path.Key.Contains(keyword, StringComparison.OrdinalIgnoreCase))
-                .SelectMany(e => e.Verbs!, (e, v) => new { Endpoint = e, Verb = v, Index = endpointslist.IndexOf(e) })
-                .Select(e => new EndpointSelected() { Endpoint = e.Endpoint, VerbSelected = e.Verb, InitialIndex = e.Index }).ToList();
+            return endpointslist!.Where(e => e.Path.Key.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                .Select(e => new EndpointSelected() { Endpoint = e, VerbSelected = e.Verb, InitialIndex = e.Index }).ToList();
         }
     }
 }

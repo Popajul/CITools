@@ -48,8 +48,18 @@ namespace CITools
             }
 
             _endpoints =
-            ((_jsonObject!.Single(p => p.Key == "paths").Value as ExpandoObject) ?? throw new DeserializeException())
-                .Select(p => new Endpoint() { Path = new KeyValuePair<string, ExpandoObject>(key: p.Key, value: (p.Value as ExpandoObject) ?? throw new DeserializeException()) });
+           ((_jsonObject!.Single(p => p.Key == "paths").Value as ExpandoObject) ?? throw new DeserializeException())
+               .Select(p =>
+               {
+                   var path = new KeyValuePair<string, ExpandoObject>(key: p.Key, value: (p.Value as ExpandoObject) ?? throw new DeserializeException());
+                   var verbs = path.Value.Select(a => new KeyValuePair<string, ExpandoObject>(a.Key, (a.Value! as ExpandoObject) ?? throw new DeserializeException()));
+                   return new { Path = path, Verbs = verbs };
+               })
+           .SelectMany(a => a.Verbs, (endpoint, verb) => (endpoint, verb))
+           .Select((e, index) =>
+           {
+               return new Endpoint() { Path = e.endpoint.Path, Verb = e.verb, Index = index };
+           });
         }
     }
 }

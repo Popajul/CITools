@@ -49,15 +49,9 @@ namespace CITools
             sb.AppendLine();
             sb.AppendLine(@"    index :");
             
-            int index = 0;
             foreach (var endpoint in endpoints)
             {
-                foreach (var verb in endpoint.Verbs!)
-                {
-
-                    sb.AppendLine($@"    -> {index}{string.Join("", Enumerable.Range(1, 3 - index.ToString().Length).Select(i => " "))} : {verb.Key}{string.Join("", Enumerable.Range(1, 6 - verb.Key.Length).Select(i => " "))} || {endpoint.Path.Key}");
-                    index++;
-                }
+                    sb.AppendLine($@"    -> {endpoint.Index}{string.Join("", Enumerable.Range(1, 3 - endpoint.Index.ToString().Length).Select(i => " "))} : {endpoint.Verb.Key}{string.Join("", Enumerable.Range(1, 6 - endpoint.Verb.Key.Length).Select(i => " "))} || {endpoint.Path.Key}");
             }
             DisplayMessage(sb.ToString());
         }
